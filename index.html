@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1e1e1e">
+<title>Технологічні карти</title>
+<style>
+:root{--bg:#121212;--card:#1e1e1e;--bar:#242424;--line:#333;--tx:#e8e8e8;--dim:#9a9a9a;--ac:#1dbfa0;--hd:#0c0c0c}
+@media(prefers-color-scheme:light){:root[data-auto]{}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--tx);font:16px/1.4 Roboto,system-ui,sans-serif}
+#app{display:flex;flex-direction:column;height:100%;max-width:720px;margin:0 auto}
+header{display:flex;align-items:center;gap:12px;padding:calc(10px + env(safe-area-inset-top,0px)) 14px 10px;background:var(--bar);border-bottom:1px solid var(--line)}
+header h1{flex:1;font-size:20px;font-weight:400;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+header svg{width:30px;height:30px;fill:var(--ac);flex:none}
+button{background:none;border:0;color:var(--tx);font:inherit;cursor:pointer}
+.ib{width:40px;height:40px;border-radius:50%;font-size:22px}
+#q{display:none;margin:8px 14px;padding:10px 14px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--tx);font:inherit;width:calc(100% - 28px)}
+main{flex:1;overflow-y:auto}
+.grp{position:sticky;top:0;background:var(--hd);padding:12px 14px;font-size:22px;border-bottom:1px solid var(--line);z-index:1}
+.grp b{font-size:14px;font-weight:400;background:#777;border-radius:6px;padding:2px 8px;margin-left:8px}
+.it{display:flex;gap:14px;padding:12px 14px;background:var(--card);border-bottom:1px solid var(--line);cursor:pointer;align-items:center}
+.th{width:100px;height:80px;flex:none;display:flex;align-items:center;justify-content:center}
+.th img{max-width:100%;max-height:100%;object-fit:contain}
+.it .t{flex:1;min-width:0}
+.it .n{font-size:18px}.it .s{color:var(--dim);margin-top:4px}
+.it .c{color:var(--dim);font-size:15px;align-self:flex-start}
+.empty{padding:40px;text-align:center;color:var(--dim)}
+nav{display:flex;background:var(--bar);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+nav button{flex:1;padding:10px 0 12px;color:var(--dim);font-size:14px;display:flex;flex-direction:column;align-items:center;gap:4px}
+nav button i{font-style:normal;width:64px;height:32px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:18px}
+nav button.on{color:var(--ac)}nav button.on i{background:var(--ac);color:#062}
+.hero{background:var(--card);padding:10px;text-align:center}
+.hero img{max-width:100%;max-height:260px;object-fit:contain}
+.dt{padding:16px 14px}
+.dt h2{font-size:28px;font-weight:400;margin:6px 0}
+.dt .sub{color:var(--dim)}
+.f{margin-top:18px}.f label{display:block;color:var(--dim);font-size:15px}
+.f div,.f a{font-size:18px;color:var(--tx);word-break:break-all}
+.f a{color:var(--ac)}
+.f img{max-width:100%;border-radius:4px;margin-top:6px;cursor:zoom-in}
+#lb{position:fixed;inset:0;background:#000e;display:none;align-items:center;justify-content:center;z-index:9}
+#lb img{max-width:100%;max-height:100%}
+#st{font-size:12px;color:var(--dim);padding:4px 14px}
+</style>
+</head>
+<body>
+<div id="app">
+<header>
+<button class="ib" id="bk" style="display:none">←</button>
+<svg viewBox="0 0 24 24"><path d="M12 0c.6 5.6 5.4 11.4 12 12-6.6.6-11.4 6.4-12 12C11.4 18.4 6.6 12.6 0 12 6.6 11.4 11.4 5.6 12 0z"/></svg>
+<h1 id="ti">Технологічні карти</h1>
+<button class="ib" id="sb">🔍</button>
+<button class="ib" id="rf" title="Оновити">⟳</button>
+</header>
+<input id="q" placeholder="Пошук…" type="search">
+<div id="st"></div>
+<main id="mn"></main>
+<nav id="nv">
+<button data-t="fit"><i>⚒</i>Слюсарні роботи</button>
+<button data-t="weld"><i>⚡</i>Зварювання</button>
+<button data-t="dwg"><i>☰</i>Креслення</button>
+</nav>
+</div>
+<div id="lb"><img alt=""></div>
+
+<script>
+/* ===== НАЛАШТУВАННЯ ===== */
+const CFG={
+  SHEET_ID:'1rnTnyv_MSWFP_4czMRCxnnKIZ0S_kB3nJW3Hprii0HQ',
+  SHEET_NAME:'Техкарти',
+  FOLDER_ID:'1-fi9L6io4vUFKCB86hdxJWLtexU8DHYp',   // папка Техкарти_Images
+  API_KEY:'AIzaSyAzaHxgzTd3hSno8kgGeDAfqGtujU61JcE'                                        // Google API key (Drive API), див. інструкцію
+};
+/* ========================= */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let items=[],imgMap={},tab=localStorage.tab||'weld',cur=null;
+
+function csv(t){const r=[];let row=[],f='',q=false;
+ for(let i=0;i<t.length;i++){const c=t[i];
+  if(q){if(c=='"'){if(t[i+1]=='"'){f+='"';i++}else q=false}else f+=c}
+  else if(c=='"')q=true;else if(c==','){row.push(f);f=''}
+  else if(c=='\n'){row.push(f);r.push(row);row=[];f=''}else if(c!='\r')f+=c}
+ if(f||row.length){row.push(f);r.push(row)}return r}
+
+async function load(force){
+ $('#st').textContent='Оновлення…';
+ try{
+  const u=`https://docs.google.com/spreadsheets/d/${CFG.SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(CFG.SHEET_NAME)}`;
+  const t=await (await fetch(u)).text();
+  const rows=csv(t).filter(r=>r.some(x=>x.trim()));
+  const h=rows[0].map(x=>x.trim());
+  items=rows.slice(1).map((r,i)=>{const o={id:i};h.forEach((k,j)=>o[k]=(r[j]||'').trim());return o})
+   .filter(o=>o['Виріб']);
+  localStorage.items=JSON.stringify(items);
+ }catch(e){items=JSON.parse(localStorage.items||'[]');$('#st').textContent='Офлайн: показано збережені дані';}
+ if(CFG.API_KEY){
+  try{
+   const u=`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(`'${CFG.FOLDER_ID}' in parents and trashed=false`)}&fields=files(id,name)&pageSize=1000&key=${CFG.API_KEY}`;
+   const j=await (await fetch(u)).json();
+   if(j.files){imgMap={};j.files.forEach(f=>imgMap[f.name.toLowerCase()]=f.id);localStorage.imgMap=JSON.stringify(imgMap)}
+  }catch(e){}
+ }
+ if(!Object.keys(imgMap).length)imgMap=JSON.parse(localStorage.imgMap||'{}');
+ if($('#st').textContent=='Оновлення…')$('#st').textContent='';
+ render();
+}
+function img(p,w=600){
+ if(!p)return'';const n=p.split('/').pop().trim().toLowerCase();
+ const id=imgMap[n];return id?`https://drive.google.com/thumbnail?id=${id}&sz=w${w}`:'';
+}
+const OPS={fit:'Слюсар',weld:'Зварю'};
+const TT={fit:'Слюсарні роботи',weld:'Зварювання',dwg:'Креслення'};
+function list(){
+ const q=$('#q').value.toLowerCase();
+ return items.filter(o=>tab=='dwg'?o['Креслення']:o['Операція'].includes(OPS[tab]))
+  .filter(o=>!q||(o['Виріб']+o['Замовник']).toLowerCase().includes(q));
+}
+function render(){
+ document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t==tab));
+ $('#bk').style.display='none';$('#ti').textContent=TT[tab];$('#nv').style.display='flex';
+ const l=list(),g={};l.forEach(o=>(g[o['Замовник']||'—']??=[]).push(o));
+ let h='';
+ for(const k of Object.keys(g).sort()){
+  h+=`<div class="grp">${esc(k)}<b>${g[k].length}</b></div>`;
+  for(const o of g[k]){const s=img(o['Фото виробу'],300);
+   h+=`<div class="it" data-i="${o.id}"><div class="th">${s?`<img src="${s}" loading="lazy" alt="">`:'📐'}</div>
+   <div class="t"><div class="n">${esc(o['Виріб'])}</div><div class="s">${tab=='dwg'?esc(o['Замовник']):esc(o['Операція'])}</div></div>
+   <div class="c">${tab=='dwg'?'🔗':'↗'}</div></div>`}
+ }
+ $('#mn').innerHTML=h||'<div class="empty">Нічого не знайдено</div>';
+}
+function detail(id){
+ const o=items.find(x=>x.id==id);cur=id;if(!o)return;
+ $('#bk').style.display='';$('#ti').textContent=o['Виріб'];$('#nv').style.display='none';
+ const a=(l,v)=>v?`<div class="f"><label>${l}</label><a href="${esc(v)}" target="_blank" rel="noopener">${esc(v)}</a></div>`:'';
+ const p=img(o['Фото виробу'],900),t=img(o['Фото техкарти'],900);
+ $('#mn').innerHTML=`${p?`<div class="hero"><img src="${p}" alt=""></div>`:''}
+ <div class="dt"><h2>${esc(o['Виріб'])}</h2><div class="sub">${esc(o['Операція'])}</div>
+ ${o['Технологічна карта']?`<div class="f"><div>${esc(o['Технологічна карта'])}</div></div>`:''}
+ ${a('Креслення',o['Креслення'])}${a('Відео техпроцесу',o['Відео техпроцесу'])}
+ ${o['Час виконання (хв):']?`<div class="f"><label>Час виконання (хв):</label><div style="font-size:24px">${esc(o['Час виконання (хв):'])}</div></div>`:''}
+ ${t?`<div class="f"><label>Фото техкарти</label><img src="${t}" alt=""></div>`:''}
+ <div class="f"><label>Замовник</label><div style="font-size:24px">${esc(o['Замовник'])}</div></div></div>`;
+ $('#mn').scrollTop=0;
+}
+document.addEventListener('click',e=>{
+ const it=e.target.closest('.it');
+ if(it){const o=items.find(x=>x.id==it.dataset.i);
+  if(tab=='dwg'&&o['Креслення']){open(o['Креслення'],'_blank');return}
+  history.pushState({d:o.id},'');detail(o.id);return}
+ const n=e.target.closest('nav button');
+ if(n){tab=n.dataset.t;localStorage.tab=tab;render()}
+ if(e.target.matches('.f img,.hero img')){$('#lb img').src=e.target.src;$('#lb').style.display='flex'}
+ if(e.target.closest('#lb'))$('#lb').style.display='none';
+});
+$('#bk').onclick=()=>history.back();
+window.onpopstate=()=>render();
+$('#rf').onclick=()=>load(true);
+$('#sb').onclick=()=>{const q=$('#q');q.style.display=q.style.display=='block'?'none':'block';if(q.style.display=='block')q.focus();else{q.value='';render()}};
+$('#q').oninput=render;
+load();
+</script>
+</body>
+</html>
