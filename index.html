@@ -70,13 +70,14 @@ nav button.on{color:var(--ac)}nav button.on i{background:var(--ac);color:#062}
 const CFG={
   SHEET_ID:'1rnTnyv_MSWFP_4czMRCxnnKIZ0S_kB3nJW3Hprii0HQ',
   SHEET_NAME:'Техкарти',
+  DWG_SHEET:'1) Лазерна порізка',   // вкладка «Креслення» бере дані звідси
   FOLDER_ID:'1-fi9L6io4vUFKCB86hdxJWLtexU8DHYp',   // папка Техкарти_Images
   API_KEY:'AIzaSyAzaHxgzTd3hSno8kgGeDAfqGtujU61JcE'                                        // Google API key (Drive API), див. інструкцію
 };
 /* ========================= */
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let items=[],imgMap={},tab=localStorage.tab||'weld',cur=null;
+let items=[],dwg=[],imgMap={},tab=localStorage.tab||'weld',cur=null;
 
 function csv(t){const r=[];let row=[],f='',q=false;
  for(let i=0;i<t.length;i++){const c=t[i];
@@ -87,15 +88,17 @@ function csv(t){const r=[];let row=[],f='',q=false;
 
 async function load(force){
  $('#st').textContent='Оновлення…';
- try{
-  const u=`https://docs.google.com/spreadsheets/d/${CFG.SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(CFG.SHEET_NAME)}`;
+ async function sheet(name,p){
+  const u=`https://docs.google.com/spreadsheets/d/${CFG.SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(name)}`;
   const t=await (await fetch(u)).text();
   const rows=csv(t).filter(r=>r.some(x=>x.trim()));
   const h=rows[0].map(x=>x.trim());
-  items=rows.slice(1).map((r,i)=>{const o={id:i};h.forEach((k,j)=>o[k]=(r[j]||'').trim());return o})
-   .filter(o=>o['Виріб']);
-  localStorage.items=JSON.stringify(items);
- }catch(e){items=JSON.parse(localStorage.items||'[]');$('#st').textContent='Офлайн: показано збережені дані';}
+  return rows.slice(1).map((r,i)=>{const o={id:p+i};h.forEach((k,j)=>o[k]=(r[j]||'').trim());return o}).filter(o=>o['Виріб']);
+ }
+ try{
+  items=await sheet(CFG.SHEET_NAME,'t');dwg=await sheet(CFG.DWG_SHEET,'d');
+  localStorage.items=JSON.stringify(items);localStorage.dwg=JSON.stringify(dwg);
+ }catch(e){items=JSON.parse(localStorage.items||'[]');dwg=JSON.parse(localStorage.dwg||'[]');$('#st').textContent='Офлайн: показано збережені дані';}
  if(CFG.API_KEY){
   try{
    const u=`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(`'${CFG.FOLDER_ID}' in parents and trashed=false`)}&fields=files(id,name)&pageSize=1000&key=${CFG.API_KEY}`;
@@ -115,7 +118,7 @@ const OPS={fit:'Слюсар',weld:'Зварю'};
 const TT={fit:'Слюсарні роботи',weld:'Зварювання',dwg:'Креслення'};
 function list(){
  const q=$('#q').value.toLowerCase();
- return items.filter(o=>tab=='dwg'?o['Креслення']:o['Операція'].includes(OPS[tab]))
+ return (tab=='dwg'?dwg:items.filter(o=>o['Операція'].includes(OPS[tab])))
   .filter(o=>!q||(o['Виріб']+o['Замовник']).toLowerCase().includes(q));
 }
 function render(){
@@ -127,13 +130,13 @@ function render(){
   h+=`<div class="grp">${esc(k)}<b>${g[k].length}</b></div>`;
   for(const o of g[k]){const s=img(o['Фото виробу'],300);
    h+=`<div class="it" data-i="${o.id}"><div class="th">${s?`<img src="${s}" loading="lazy" alt="">`:'📐'}</div>
-   <div class="t"><div class="n">${esc(o['Виріб'])}</div><div class="s">${tab=='dwg'?esc(o['Замовник']):esc(o['Операція'])}</div></div>
-   <div class="c">${tab=='dwg'?'🔗':'↗'}</div></div>`}
+   <div class="t"><div class="n">${esc(o['Виріб'])}</div><div class="s">${tab=='dwg'?esc(o['Час виконання (хв):']?o['Час виконання (хв):']+' хв':''):esc(o['Операція'])}</div></div>
+   <div class="c">${o['Креслення']?'🔗':''}</div></div>`}
  }
  $('#mn').innerHTML=h||'<div class="empty">Нічого не знайдено</div>';
 }
 function detail(id){
- const o=items.find(x=>x.id==id);cur=id;if(!o)return;
+ const o=items.concat(dwg).find(x=>x.id==id);cur=id;if(!o)return;const D=o.id[0]=='d';if(!o)return;
  $('#bk').style.display='';$('#ti').textContent=o['Виріб'];$('#nv').style.display='none';
  const a=(l,v)=>v?`<div class="f"><label>${l}</label><a href="${esc(v)}" target="_blank" rel="noopener">${esc(v)}</a></div>`:'';
  const p=img(o['Фото виробу'],900),t=img(o['Фото техкарти'],900);
@@ -142,15 +145,13 @@ function detail(id){
  ${o['Технологічна карта']?`<div class="f"><div>${esc(o['Технологічна карта'])}</div></div>`:''}
  ${a('Креслення',o['Креслення'])}${a('Відео техпроцесу',o['Відео техпроцесу'])}
  ${o['Час виконання (хв):']?`<div class="f"><label>Час виконання (хв):</label><div style="font-size:24px">${esc(o['Час виконання (хв):'])}</div></div>`:''}
- ${t?`<div class="f"><label>Фото техкарти</label><img src="${t}" alt=""></div>`:''}
+ ${t&&!D?`<div class="f"><label>Фото техкарти</label><img src="${t}" alt=""></div>`:''}
  <div class="f"><label>Замовник</label><div style="font-size:24px">${esc(o['Замовник'])}</div></div></div>`;
  $('#mn').scrollTop=0;
 }
 document.addEventListener('click',e=>{
  const it=e.target.closest('.it');
- if(it){const o=items.find(x=>x.id==it.dataset.i);
-  if(tab=='dwg'&&o['Креслення']){open(o['Креслення'],'_blank');return}
-  history.pushState({d:o.id},'');detail(o.id);return}
+ if(it){const id=it.dataset.i;history.pushState({d:id},'');detail(id);return}
  const n=e.target.closest('nav button');
  if(n){tab=n.dataset.t;localStorage.tab=tab;render()}
  if(e.target.matches('.f img,.hero img')){$('#lb img').src=e.target.src;$('#lb').style.display='flex'}
